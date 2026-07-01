@@ -1,1 +1,790 @@
-<h1>我的聊天室正在建设中...</h1>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多聊天室系统 (云同步版)</title>
+    <style>
+        :root {
+            --primary-color: #5b7cfa;
+            --primary-light: #eef1ff;
+            --secondary-color: #42b983;
+            --bg-color: #f5f7fa;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --text-muted: #999999;
+            --border-color: #e6e6e6;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); display: flex; justify-content: center; min-height: 100vh; }
+        #app-wrapper { width: 100%; max-width: 800px; min-height: 100vh; background: #fff; box-shadow: 0 0 30px rgba(0,0,0,0.05); display: flex; flex-direction: column; position: relative; }
+        .hidden { display: none !important; }
+
+        /* 首页页面 */
+        #homePage { padding: 20px; flex: 1; }
+        #homePage h2 { text-align: center; font-weight: 600; color: var(--text-main); margin: 30px 0; font-size: 24px; letter-spacing: 1px; }
+        
+        /* 聊天室列表 */
+        .room-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 40px; }
+        @media (min-width: 600px) { .room-list { grid-template-columns: repeat(3, 1fr); } }
+        
+        .room-item {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 20px 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 80px;
+        }
+        .room-item:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--primary-color); }
+        .room-item .room-name { font-weight: 600; color: var(--text-main); margin-bottom: 8px; font-size: 16px; }
+        .room-item.public { background: var(--primary-light); border-color: #d0d9ff; }
+        .room-item.public .room-name { color: var(--primary-color); }
+        .room-item.private { background: #fffbf1; border-color: #f9e8c7; }
+        .room-item .online-count { 
+            font-size: 12px; color: var(--text-muted); background: rgba(255,255,255,0.7); 
+            padding: 2px 8px; border-radius: 10px; border: 1px solid var(--border-color);
+        }
+        .room-item .private-tag { font-size: 12px; color: #e67e22; margin-top: 5px; font-weight: 500; }
+
+        /* 昵称注册框 */
+        .nickname-box { max-width: 400px; margin: 0 auto; background: #fff; padding: 30px; border-radius: var(--radius); box-shadow: 0 0 20px rgba(0,0,0,0.03); border: 1px solid var(--border-color); text-align: center; }
+        .nickname-box .user-info { color: var(--text-muted); font-size: 13px; margin-bottom: 15px; word-break: break-all; }
+        .nickname-box input { 
+            width: 100%; padding: 12px 15px; font-size: 15px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); 
+            outline: none; transition: 0.2s; margin-bottom: 10px; 
+        }
+        .nickname-box input:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(91, 124, 250, 0.2); }
+        .nickname-box .btn-group { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .nickname-box button {
+            padding: 10px 20px; font-size: 14px; border: none; border-radius: var(--radius-sm); cursor: pointer; 
+            background: var(--primary-color); color: white; transition: 0.2s; font-weight: 500;
+        }
+        .nickname-box button:hover { opacity: 0.9; transform: scale(0.98); }
+        .nickname-box .admin-btn { background: #e67e22; color: white; }
+        .nickname-box .tip { font-size: 13px; margin-top: 15px; height: 20px; color: #e74c3c; }
+        .nickname-box .tip.success { color: var(--secondary-color); }
+
+        /* 聊天室界面 */
+        #chatRoomPage { flex: 1; display: flex; flex-direction: column; height: 100vh; position: relative; background: #f8f9fa; }
+        
+        /* 顶部菜单 */
+        .chat-header { 
+            background: var(--primary-color); color: white; padding: 15px 20px; border-radius: 0 0 15px 15px;
+            display: flex; justify-content: space-between; align-items: center; position: relative; flex-shrink: 0;
+            box-shadow: 0 2px 10px rgba(91, 124, 250, 0.4);
+        }
+        .chat-header .room-info { display: flex; flex-direction: column; gap: 2px; }
+        .chat-header .room-title { font-size: 18px; font-weight: 600; }
+        .chat-header .room-online { font-size: 12px; opacity: 0.8; }
+        .chat-header .header-menu { position: relative; }
+        .chat-header .menu-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 15px; border-radius: 20px; cursor: pointer; font-size: 14px; backdrop-filter: blur(4px); }
+        
+        .header-menu .menu-dropdown {
+            position: absolute; right: 0; top: 40px; background: white; border-radius: var(--radius); box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 150px; z-index: 20; border: 1px solid var(--border-color); overflow: hidden;
+        }
+        .header-menu .menu-dropdown li { list-style: none; padding: 12px 15px; font-size: 14px; color: var(--text-main); cursor: pointer; transition: 0.1s; border-bottom: 1px solid #f5f5f5; }
+        .header-menu .menu-dropdown li:hover { background: #f5f7fa; color: var(--primary-color); }
+        .header-menu .menu-dropdown li:last-child { border-bottom: none; color: #e74c3c; }
+        .header-menu .menu-dropdown li:last-child:hover { background: #fff5f5; color: #e74c3c; }
+
+        /* 消息显示区 */
+        .chat-messages-area { flex: 1; padding: 20px; overflow-y: auto; background: #f5f7fa; display: flex; flex-direction: column; }
+        .current-user-tag { text-align: center; font-size: 12px; color: var(--text-muted); margin-bottom: 15px; }
+        
+        .msg { padding: 12px 16px; border-radius: var(--radius); margin-bottom: 10px; max-width: 80%; width: fit-content; position: relative; font-size: 15px; line-height: 1.5; box-shadow: 0 1px 2px rgba(0,0,0,0.05); word-break: break-all; }
+        
+        .msg.msg { background: #ffffff; color: #333; margin-right: auto; border-top-left-radius: 4px; }
+        .msg.admin-msg { background: #ffffff; color: #333; border-left: 4px solid #e67e22; margin-right: auto; border-top-left-radius: 4px; }
+        
+        /* 自己发的消息（需要DOM结构支持或者通过JS控制） */
+        .chat-messages-area .msg.own { background: var(--primary-color); color: white; margin-left: auto; border-top-right-radius: 4px; border-left: none; }
+        
+        .msg.broadcast-msg { 
+            background: #e8f5e9; color: #2e7d32; text-align: center; margin: 10px auto; max-width: 90%; 
+            border-left: 3px solid #4caf50; border-radius: var(--radius-sm);
+        }
+        .msg.notice { color: var(--text-muted); font-style: italic; text-align: center; margin: 8px auto; font-size: 13px; background: transparent; box-shadow: none; width: 100%; }
+
+        /* 输入框 */
+        .chat-input-area { 
+            background: white; padding: 15px 20px; border-top: 1px solid var(--border-color); display: flex; gap: 12px; 
+            position: sticky; bottom: 0; flex-shrink: 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.02);
+        }
+        .chat-input-area input {
+            flex: 1; padding: 12px 15px; border: 1px solid var(--border-color); border-radius: 25px; outline: none; 
+            font-size: 15px; background: #f8f9fa; transition: 0.2s;
+        }
+        .chat-input-area input:focus { background: #fff; border-color: var(--primary-color); }
+        .chat-input-area button {
+            padding: 0 25px; background: var(--primary-color); color: white; border: none; border-radius: 25px; 
+            font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 15px;
+        }
+        .chat-input-area button:hover { opacity: 0.8; }
+
+        /* 弹窗和遮罩 */
+        .mask { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 99; backdrop-filter: blur(2px); }
+        
+        .modal {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.95);
+            background: white; border-radius: var(--radius); box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            width: 90%; max-width: 550px; z-index: 100; display: flex; flex-direction: column;
+            max-height: 90vh; transition: 0.2s; opacity: 0;
+        }
+        .modal:not(.hidden) { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        .modal-header { 
+            padding: 15px 20px; color: white; border-radius: var(--radius) var(--radius) 0 0; display: flex; justify-content: space-between; align-items: center; 
+            flex-shrink: 0;
+        }
+        .modal-header h4 { font-size: 17px; font-weight: 600; }
+        .modal-header button { background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; opacity: 0.8; }
+        .modal-header button:hover { opacity: 1; }
+        
+        .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+
+        /* 特定弹窗颜色 */
+        #privateChatModal .modal-header { background: #42b983; }
+        #playerListModal .modal-header { background: var(--primary-color); }
+        #adminModal .modal-header { background: #e67e22; }
+
+        /* 私聊面板 */
+        .private-user-list { border-bottom: 1px solid var(--border-color); margin-bottom: 15px; padding-bottom: 10px; max-height: 150px; overflow-y: auto; }
+        .private-user-item { padding: 8px 12px; border-radius: var(--radius-sm); cursor: pointer; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; transition: 0.1s; }
+        .private-user-item:hover { background: #f5f5f5; }
+        .private-user-item .user-id { font-size: 12px; color: var(--text-muted); }
+        .private-messages { height: 180px; border: 1px solid var(--border-color); padding: 15px; overflow-y: auto; margin-bottom: 15px; border-radius: var(--radius-sm); background: #fafafa; }
+        .private-chat-input { display: flex; gap: 10px; }
+        .private-chat-input input { flex: 1; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); outline: none; }
+        .private-chat-input input:focus { border-color: #42b983; }
+        .private-chat-input button { padding: 10px 20px; background: #42b983; color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; }
+
+        /* 玩家列表 */
+        .player-item { padding: 8px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+        .player-item .player-nickname { font-weight: 500; }
+        .player-item .player-id { font-size: 12px; color: var(--text-muted); }
+        .player-item.admin .player-nickname { color: #e67e22; font-weight: bold; }
+
+        /* 管理员后台 */
+        .admin-broadcast, .admin-room-stats { margin-bottom: 20px; padding: 15px; border: 1px solid transparent; border-radius: var(--radius-sm); }
+        .admin-broadcast { background: #fff8e1; border-color: #ffcc80; }
+        .admin-room-stats { background: #e3f2fd; border-color: #90caf9; }
+        
+        .admin-broadcast h4, .admin-room-stats h4 { margin-bottom: 12px; font-size: 15px; }
+        .broadcast-input { display: flex; gap: 10px; }
+        .broadcast-input input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        .broadcast-input button { padding: 10px 20px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        
+        .stats-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .stats-item { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; }
+        
+        .admin-search { margin-bottom: 15px; display: flex; gap: 10px; }
+        .admin-search input { flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; }
+        .admin-search button { padding: 8px 15px; background: #e67e22; color: white; border: none; border-radius: 4px; cursor: pointer; }
+
+        .user-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .user-table th { background: #f8f9fa; padding: 10px; border-bottom: 2px solid #eee; text-align: left; color: #555; }
+        .user-table td { padding: 10px; border-bottom: 1px solid #eee; vertical-align: middle; }
+        .user-table button { padding: 4px 10px; border: none; border-radius: 4px; font-size: 12px; cursor: pointer; color: white; }
+        .ban-btn { background: #e74c3c; }
+        .unban-btn { background: #27ae60; }
+        .auth-btn { background: #3498db; }
+
+        @media (max-width: 600px) {
+            .nickname-box { width: 100%; }
+            .room-list { grid-template-columns: repeat(1, 1fr); }
+            .stats-list { grid-template-columns: 1fr; }
+            .user-table { font-size: 12px; }
+            .user-table th, .user-table td { padding: 6px 4px; }
+        }
+    </style>
+    <!-- 引入 Supabase 连接库 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div id="app-wrapper">
+    <!-- 首页 -->
+    <div id="homePage">
+        <h2>📱 多聊天室系统</h2>
+        <div class="room-list" id="roomList"></div>
+        <div class="nickname-box">
+            <div class="user-info" id="userInfo">请注册或登录</div>
+            <input type="text" id="nicknameInput" placeholder="请输入昵称（1-10字符）">
+            <div class="btn-group">
+                <button onclick="registerNickname()">确认注册</button>
+                <button onclick="changeNickname()">修改昵称</button>
+                <button onclick="openAdminPanel()" class="admin-btn hidden" id="adminPanelBtn">管理员后台</button>
+            </div>
+            <div class="tip" id="nicknameTip"></div>
+        </div>
+    </div>
+
+    <!-- 聊天室界面 -->
+    <div id="chatRoomPage" class="hidden">
+        <div class="chat-header">
+            <div class="room-info">
+                <div class="room-title" id="roomTitle">聊天室名称</div>
+                <div class="room-online" id="roomOnlineCount">在线人数：0</div>
+            </div>
+            <div class="header-menu">
+                <button class="menu-btn" onclick="toggleMenu()">菜单 ∨</button>
+                <ul class="menu-dropdown hidden" id="menuDropdown">
+                    <li onclick="viewPlayerList()">👥 查看玩家列表</li>
+                    <li onclick="openPrivateChat()">💬 打开私聊</li>
+                    <li onclick="openAdminPanel()" class="hidden" id="adminMenuBtn">⚙️ 管理员后台</li>
+                    <li onclick="exitChatRoom()">🚪 退出聊天室</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="chat-messages-area">
+            <div class="current-user-tag" id="currentUserTag">当前用户信息</div>
+            <div id="groupChatMessages" style="flex:1; display: flex; flex-direction: column;"></div>
+        </div>
+
+        <div class="chat-input-area">
+            <input type="text" id="groupMsgInput" placeholder="输入群聊消息...">
+            <button onclick="sendGroupMsg()">发送</button>
+        </div>
+    </div>
+</div>
+
+<!-- 弹窗容器 -->
+<div class="mask hidden" id="privateMask"></div>
+<div class="modal hidden" id="privateChatModal">
+    <div class="modal-header"><h4>💬 私聊</h4><button onclick="closePrivateChat()">✕</button></div>
+    <div class="modal-body">
+        <div class="private-user-list" id="privateUserList"></div>
+        <div class="private-messages" id="privateMessages"></div>
+        <div class="private-chat-input">
+            <input type="text" id="privateMsgInput" placeholder="输入私聊消息...">
+            <button onclick="sendPrivateMsg()">发送</button>
+        </div>
+    </div>
+</div>
+
+<div class="mask hidden" id="playerListMask"></div>
+<div class="modal hidden" id="playerListModal">
+    <div class="modal-header"><h4>👥 当前聊天室玩家</h4><button onclick="closePlayerList()">✕</button></div>
+    <div class="modal-body" id="playerListContent"></div>
+</div>
+
+<div class="mask hidden" id="adminMask"></div>
+<div class="modal hidden" id="adminModal">
+    <div class="modal-header"><h4>🛠 管理员后台</h4><button onclick="closeAdminPanel()">✕</button></div>
+    <div class="modal-body">
+        <div class="admin-broadcast">
+            <h4>📢 系统广播</h4>
+            <div class="broadcast-input">
+                <input type="text" id="broadcastInput" placeholder="输入广播内容...">
+                <button onclick="sendBroadcast()">发送</button>
+            </div>
+        </div>
+        <div class="admin-room-stats">
+            <h4>📊 全聊天室在线统计</h4>
+            <div class="stats-list" id="roomStatsList"></div>
+        </div>
+        <div class="admin-search">
+            <input type="text" id="adminSearchInput" placeholder="输入用户ID/昵称搜索">
+            <button onclick="searchUser()">搜索</button>
+        </div>
+        <table class="user-table">
+            <thead><tr><th>ID</th><th>昵称</th><th>状态</th><th>房间</th><th>私密权限</th><th>操作</th></tr></thead>
+            <tbody id="userTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // ========================================================
+    // 🟢 重要：请在这里填入你的 Supabase 连接信息 🟢
+    // ========================================================
+    const SUPABASE_URL = 'https://你的项目ID.supabase.co';
+    const SUPABASE_KEY = '你的anon_public可发布密钥';
+    
+    // 初始化 Supabase 客户端
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // ========================================================
+
+    // 全局变量
+    let currentUser = { id: '', nickname: '', isAdmin: false, isBanned: false, currentRoomId: '' };
+    let currentRoom = '';
+    let currentPrivateTarget = '';
+    let isRegistered = false;
+    const userDatabase = [];
+    const adminIds = ['USER_001'];
+    const authorizedUsers = ['USER_001', 'USER_002'];
+    const forbiddenWords = ['垃圾', '脏话1', '脏话2', '敏感词'];
+    const rooms = [
+        { id: 'room1', name: '聊天室1', type: 'public' },
+        { id: 'room2', name: '聊天室2', type: 'public' },
+        { id: 'room3', name: '聊天室3', type: 'public' },
+        { id: 'room4', name: '聊天室4', type: 'public' },
+        { id: 'room5', name: '聊天室5', type: 'public' },
+        { id: 'room6', name: '聊天室6', type: 'public' },
+        { id: 'room7', name: '聊天室7', type: 'public' },
+        { id: 'room8', name: '聊天室8', type: 'public' },
+        { id: 'room9', name: '聊天室9', type: 'public' },
+        { id: 'room10', name: '聊天室10', type: 'public' },
+        { id: 'private', name: 'VIP专属聊天室', type: 'private' }
+    ];
+    const onlineUsers = [
+        { id: 'USER_001', nickname: 'admin', isAdmin: true, isBanned: false, currentRoomId: '' },
+        { id: 'USER_002', nickname: 'test001', isAdmin: false, isBanned: false, currentRoomId: 'room1' },
+        { id: 'USER_003', nickname: 'user1', isAdmin: false, isBanned: false, currentRoomId: 'room1' },
+        { id: 'USER_004', nickname: 'user2', isAdmin: false, isBanned: false, currentRoomId: 'room2' }
+    ];
+    const privateHistory = {};
+    const roomData = {};
+
+    rooms.forEach(room => {
+        roomData[room.id] = { messages: [], onlineUserIds: [] };
+        onlineUsers.forEach(user => { if (user.currentRoomId === room.id) roomData[room.id].onlineUserIds.push(user.id); });
+    });
+
+    window.onload = () => { 
+        renderRoomList(); 
+        const savedUserId = localStorage.getItem('chatUserId'); 
+        if (savedUserId) loadSavedUser(savedUserId); 
+        updateAdminButtonStatus(); 
+        
+        // 如果用户已登录，开启云端消息监听
+        listenForMessages();
+    };
+
+    function generateUniqueId() {
+        const timestamp = new Date().getTime().toString().slice(-6);
+        const random = Math.floor(Math.random() * 999).toString().padStart(3, '0');
+        return `USER_${timestamp}${random}`;
+    }
+    function hasForbiddenWords(content) { return forbiddenWords.some(word => content.includes(word)); }
+    function isNicknameDuplicate(nickname, excludeId = '') {
+        const allUsers = [...userDatabase, ...onlineUsers];
+        return allUsers.some(user => user.nickname.toLowerCase() === nickname.toLowerCase() && user.id !== excludeId);
+    }
+    function checkUserBanned() {
+        if (currentUser.isBanned) { alert('❌ 你的账号已被封号，无法使用聊天室功能！'); return true; }
+        return false;
+    }
+    function loadSavedUser(userId) {
+        let savedUser = userDatabase.find(u => u.id === userId);
+        if (!savedUser) savedUser = onlineUsers.find(u => u.id === userId);
+        if (savedUser) {
+            currentUser = savedUser; isRegistered = true;
+            document.getElementById('userInfo').textContent = `你的唯一ID：${currentUser.id} | 当前昵称：${currentUser.nickname} ${currentUser.isAdmin ? '[管理员]' : ''}`;
+            document.getElementById('nicknameInput').value = currentUser.nickname;
+            document.getElementById('nicknameTip').textContent = '✅ 已加载本地用户信息';
+            document.getElementById('nicknameTip').className = 'tip success';
+            currentUser.isAdmin = adminIds.includes(currentUser.id);
+        }
+    }
+    function updateAdminButtonStatus() {
+        document.getElementById('adminPanelBtn').className = currentUser.isAdmin ? 'admin-btn' : 'admin-btn hidden';
+        document.getElementById('adminMenuBtn').className = currentUser.isAdmin ? '' : 'hidden';
+    }
+
+    // ========================================================
+    // 🟢 核心升级：连接云端接收和发送消息 🟢
+    // ========================================================
+
+    // 发送消息到云端
+    function sendGroupMsg() {
+        if (checkUserBanned()) return;
+        const input = document.getElementById('groupMsgInput');
+        const msg = input.value.trim();
+        if (!msg) return;
+        if (hasForbiddenWords(msg)) { alert('❌ 消息包含违禁词，禁止发送！'); input.value = ''; return; }
+
+        // 推送到 Supabase 云端
+        supabaseClient
+            .from('messages')
+            .insert({
+                room_id: currentRoom,
+                nickname: currentUser.nickname,
+                content: msg
+            })
+            .then();
+
+        // 自己发的消息，立刻在本地显示（变成蓝色气泡）
+        const msgContent = `【${currentUser.nickname}（ID：${currentUser.id}）】${msg}`;
+        const msgType = currentUser.isAdmin ? 'admin-msg' : 'msg';
+        addGroupMsg(msgContent, msgType, true, currentRoom); 
+        
+        input.value = '';
+    }
+
+    // 实时监听云端（别人发消息，你的页面立刻弹出）
+    function listenForMessages() {
+        supabaseClient
+            .channel('chat-room-sync')
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'messages' },
+                (payload) => {
+                    const newMsg = payload.new;
+                    // 如果消息是自己发的，就不重复显示（避免气泡重复）
+                    if (newMsg.nickname === currentUser.nickname) return;
+                    // 如果不是当前所在的聊天室，也不显示
+                    if (newMsg.room_id !== currentRoom) return;
+
+                    // 构造消息内容
+                    const msgContent = `【${newMsg.nickname}】${newMsg.content}`;
+                    // 判断是不是管理员发的
+                    const isAdmin = adminIds.includes(newMsg.id); // 预留管理员判断
+                    const msgType = isAdmin ? 'admin-msg' : 'msg';
+                    
+                    // 添加到本地屏幕，但拒绝存入本地缓存（isSave = false）
+                    addGroupMsg(msgContent, msgType, false, currentRoom);
+                }
+            )
+            .subscribe();
+    }
+
+    // ========================================================
+
+    // 添加群消息（判断气泡颜色及归属）
+    function addGroupMsg(content, type, isSave = true, roomId = currentRoom) {
+        if (!roomId) return;
+        const msgBox = document.getElementById('groupChatMessages');
+        if (roomId === currentRoom && msgBox) {
+            const div = document.createElement('div');
+            div.className = type;
+            if (type === 'msg' && content.includes(currentUser.nickname) && !content.includes('【系统】')) {
+                div.classList.add('own');
+            } 
+            if (content.startsWith('【系统】')) {
+                div.className = 'notice';
+            }
+            div.textContent = content;
+            msgBox.appendChild(div);
+            msgBox.scrollTop = msgBox.scrollHeight;
+        }
+        if (isSave) roomData[roomId].messages.push({ content, type });
+    }
+
+    function registerNickname() {
+        if (checkUserBanned()) return;
+        const nickname = document.getElementById('nicknameInput').value.trim();
+        const tip = document.getElementById('nicknameTip'); tip.className = 'tip';
+        if (nickname.length === 0 || nickname.length > 10) { tip.textContent = '❌ 昵称长度需1-10字符'; return; }
+        if (hasForbiddenWords(nickname)) { tip.textContent = '❌ 昵称含违禁词，请修改'; return; }
+        if (isNicknameDuplicate(nickname)) { tip.textContent = '❌ 该昵称已被使用，请更换'; return; }
+        if (!currentUser.id) {
+            currentUser.id = generateUniqueId();
+            currentUser.isAdmin = adminIds.includes(currentUser.id);
+            currentUser.isBanned = false;
+            currentUser.currentRoomId = '';
+            currentUser.nickname = nickname;
+            userDatabase.push({ ...currentUser });
+            localStorage.setItem('chatUserId', currentUser.id);
+        }
+        currentUser.nickname = nickname; isRegistered = true;
+        document.getElementById('userInfo').textContent = `你的唯一ID：${currentUser.id} | 当前昵称：${currentUser.nickname} ${currentUser.isAdmin ? '[管理员]' : ''}`;
+        tip.textContent = '✅ 注册/更新成功，可点击聊天室进入';
+        tip.className = 'tip success';
+        updateAdminButtonStatus();
+    }
+    function changeNickname() {
+        if (!isRegistered) { alert('❌ 请先完成注册！'); return; }
+        if (checkUserBanned()) return;
+        const nickname = document.getElementById('nicknameInput').value.trim();
+        const tip = document.getElementById('nicknameTip'); tip.className = 'tip';
+        if (nickname.length === 0 || nickname.length > 10) { tip.textContent = '❌ 昵称长度需1-10字符'; return; }
+        if (hasForbiddenWords(nickname)) { tip.textContent = '❌ 昵称含违禁词，请修改'; return; }
+        if (isNicknameDuplicate(nickname, currentUser.id)) { tip.textContent = '❌ 该昵称已被使用，请更换'; return; }
+        const oldNickname = currentUser.nickname; currentUser.nickname = nickname;
+        const userIndex = userDatabase.findIndex(u => u.id === currentUser.id);
+        if (userIndex !== -1) userDatabase[userIndex].nickname = nickname;
+        if (currentUser.currentRoomId) {
+            const notice = `【系统】用户${oldNickname}已改名为${nickname}`;
+            addGroupMsg(notice, 'notice', true, currentUser.currentRoomId);
+        }
+        document.getElementById('userInfo').textContent = `你的唯一ID：${currentUser.id} | 当前昵称：${currentUser.nickname} ${currentUser.isAdmin ? '[管理员]' : ''}`;
+        tip.textContent = '✅ 昵称修改成功'; tip.className = 'tip success';
+        if (!document.getElementById('playerListModal').classList.contains('hidden')) renderPlayerList();
+        if (currentUser.isAdmin && !document.getElementById('adminModal').classList.contains('hidden')) renderUserTable();
+        renderPrivateUserList();
+    }
+    function renderRoomList() { updateRoomOnlineCount(); }
+
+    function enterChatRoom(room) {
+        if (checkUserBanned()) return;
+        if (!isRegistered) { alert('❌ 请先注册昵称！'); return; }
+        if (room.type === 'private' && !authorizedUsers.includes(currentUser.id)) { alert('❌ 无权限进入该私密聊天室'); return; }
+        if (currentUser.currentRoomId) {
+            const leaveRoomId = currentUser.currentRoomId;
+            roomData[leaveRoomId].onlineUserIds = roomData[leaveRoomId].onlineUserIds.filter(id => id !== currentUser.id);
+            const leaveNotice = `【系统】${currentUser.nickname}（ID：${currentUser.id}）离开了${rooms.find(r => r.id === leaveRoomId).name}`;
+            addGroupMsg(leaveNotice, 'notice', false, leaveRoomId);
+        }
+        currentRoom = room.id; currentUser.currentRoomId = room.id;
+        roomData[room.id].onlineUserIds.push(currentUser.id);
+        document.getElementById('roomTitle').textContent = room.name;
+        document.getElementById('currentUserTag').textContent = `当前用户：${currentUser.nickname}（ID：${currentUser.id}）${currentUser.isAdmin ? '[管理员]' : ''}`;
+        document.getElementById('homePage').classList.add('hidden');
+        document.getElementById('chatRoomPage').classList.remove('hidden');
+        const msgBox = document.getElementById('groupChatMessages');
+        msgBox.innerHTML = '';
+        roomData[currentRoom].messages.forEach(msg => {
+            const div = document.createElement('div');
+            div.className = msg.type;
+            div.textContent = msg.content;
+            if (msg.type === 'msg' && msg.content.includes(currentUser.nickname) && !msg.content.includes('【系统】')) { div.classList.add('own'); }
+            if (msg.content.startsWith('【系统】')) div.className = 'notice';
+            msgBox.appendChild(div);
+        });
+        const enterNotice = `【系统】${currentUser.nickname}（ID：${currentUser.id}）加入了${room.name}`;
+        addGroupMsg(enterNotice, 'notice', true, currentRoom);
+        updateRoomOnlineCount(); renderPrivateUserList();
+    }
+
+    function toggleMenu() { document.getElementById('menuDropdown').classList.toggle('hidden'); }
+
+    function exitChatRoom() {
+        if (!currentUser.currentRoomId) return;
+        const leaveRoomId = currentUser.currentRoomId;
+        roomData[leaveRoomId].onlineUserIds = roomData[leaveRoomId].onlineUserIds.filter(id => id !== currentUser.id);
+        const leaveNotice = `【系统】${currentUser.nickname}（ID：${currentUser.id}）离开了${rooms.find(r => r.id === leaveRoomId).name}`;
+        addGroupMsg(leaveNotice, 'notice', false, leaveRoomId);
+        currentUser.currentRoomId = ''; currentRoom = '';
+        document.getElementById('chatRoomPage').classList.add('hidden');
+        document.getElementById('homePage').classList.remove('hidden');
+        document.getElementById('menuDropdown').classList.add('hidden');
+        closePrivateChat(); closePlayerList();
+        updateRoomOnlineCount();
+    }
+
+    function openPrivateChat() {
+        if (checkUserBanned()) return;
+        document.getElementById('privateMask').classList.remove('hidden');
+        document.getElementById('privateChatModal').classList.remove('hidden');
+        document.getElementById('menuDropdown').classList.add('hidden');
+    }
+    function closePrivateChat() {
+        document.getElementById('privateMask').classList.add('hidden');
+        document.getElementById('privateChatModal').classList.add('hidden');
+        currentPrivateTarget = ''; document.getElementById('privateMessages').innerHTML = '';
+    }
+    function renderPrivateUserList() {
+        const userList = document.getElementById('privateUserList'); userList.innerHTML = '';
+        const allUsers = [...userDatabase, ...onlineUsers];
+        const uniqueUsers = Array.from(new Map(allUsers.map(u => [u.id, u])).values());
+        uniqueUsers.forEach(user => {
+            if (user.id === currentUser.id || user.isBanned) return;
+            const item = document.createElement('div'); item.className = 'private-user-item';
+            item.innerHTML = `<span>${user.nickname} ${user.isAdmin ? '[管理员]' : ''}</span><span class="user-id">${user.id}</span>`;
+            if (!user.isBanned) {
+                item.onclick = () => { currentPrivateTarget = user.id; document.querySelectorAll('.private-user-item').forEach(el => el.style.background = ''); item.style.background = '#eef1ff'; loadPrivateHistory(); };
+            } else { item.style.opacity = '0.5'; item.style.cursor = 'not-allowed'; }
+            userList.appendChild(item);
+        });
+    }
+    function sendPrivateMsg() {
+        if (checkUserBanned()) return;
+        if (!currentPrivateTarget) { alert('❌ 请先选择私聊对象'); return; }
+        const input = document.getElementById('privateMsgInput'); const msg = input.value.trim();
+        if (!msg) return;
+        if (hasForbiddenWords(msg)) { alert('❌ 消息包含违禁词，禁止发送！'); input.value = ''; return; }
+        const targetUser = [...userDatabase, ...onlineUsers].find(u => u.id === currentPrivateTarget);
+        if (!targetUser || targetUser.isBanned) { alert('❌ 私聊对象不在线或已被封号'); return; }
+        const chatKey = [currentUser.id, targetUser.id].sort().join('_');
+        privateHistory[chatKey] = privateHistory[chatKey] || [];
+        privateHistory[chatKey].push({ fromId: currentUser.id, fromNickname: currentUser.nickname, toId: targetUser.id, toNickname: targetUser.nickname, msg, time: new Date().toLocaleTimeString() });
+        addPrivateMsg(`[${new Date().toLocaleTimeString()}] 我: ${msg}`);
+        input.value = '';
+    }
+    function loadPrivateHistory() {
+        const targetUser = [...userDatabase, ...onlineUsers].find(u => u.id === currentPrivateTarget);
+        if (!targetUser) return;
+        const chatKey = [currentUser.id, targetUser.id].sort().join('_');
+        const msgBox = document.getElementById('privateMessages'); msgBox.innerHTML = '';
+        if (privateHistory[chatKey]) {
+            privateHistory[chatKey].forEach(item => {
+                const content = item.fromId === currentUser.id ? `[${item.time}] 我: ${item.msg}` : `[${item.time}] ${item.fromNickname}: ${item.msg}`;
+                addPrivateMsg(content);
+            });
+        }
+    }
+    function addPrivateMsg(content) {
+        const msgBox = document.getElementById('privateMessages');
+        const div = document.createElement('div'); div.textContent = content; msgBox.appendChild(div);
+        msgBox.scrollTop = msgBox.scrollHeight;
+    }
+
+    function viewPlayerList() {
+        if (!currentRoom) { alert('❌ 请先进入聊天室！'); return; }
+        document.getElementById('playerListMask').classList.remove('hidden');
+        document.getElementById('playerListModal').classList.remove('hidden');
+        document.getElementById('menuDropdown').classList.add('hidden');
+        renderPlayerList();
+    }
+    function closePlayerList() {
+        document.getElementById('playerListMask').classList.add('hidden');
+        document.getElementById('playerListModal').classList.add('hidden');
+    }
+    function renderPlayerList() {
+        const playerListContent = document.getElementById('playerListContent'); playerListContent.innerHTML = '';
+        const allUsers = [...userDatabase, ...onlineUsers];
+        const onlineUserIds = roomData[currentRoom].onlineUserIds;
+        const roomUsers = allUsers.filter(user => onlineUserIds.includes(user.id));
+        if (roomUsers.length === 0) {
+            playerListContent.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:20px;">当前聊天室暂无在线玩家</p>';
+            return;
+        }
+        roomUsers.forEach(user => {
+            const playerItem = document.createElement('div'); playerItem.className = `player-item ${user.isAdmin ? 'admin' : ''}`;
+            playerItem.innerHTML = `<span class="player-nickname">${user.nickname} ${user.isAdmin ? '[管理员]' : ''}</span><span class="player-id">${user.id}</span>`;
+            playerListContent.appendChild(playerItem);
+        });
+    }
+
+    function sendBroadcast() {
+        if (!currentUser.isAdmin) { alert('❌ 非管理员无权限发送广播！'); return; }
+        const input = document.getElementById('broadcastInput'); const broadcastContent = input.value.trim();
+        if (!broadcastContent) { alert('❌ 广播内容不能为空！'); return; }
+        if (hasForbiddenWords(broadcastContent)) { alert('❌ 广播内容包含违禁词，禁止发送！'); input.value = ''; return; }
+        const finalContent = `【系统广播】${currentUser.nickname}：${broadcastContent}`;
+        rooms.forEach(room => {
+            roomData[room.id].messages.push({ content: finalContent, type: 'broadcast-msg' });
+            if (roomData[room.id].onlineUserIds.length > 0) addGroupMsg(finalContent, 'broadcast-msg', false, room.id);
+        });
+        if (currentRoom) addGroupMsg(finalContent, 'broadcast-msg', false, currentRoom);
+        alert('✅ 广播消息已发送至所有聊天室！'); input.value = '';
+    }
+
+    function openAdminPanel() {
+        if (!currentUser.isAdmin) { alert('❌ 非管理员无权限访问！'); return; }
+        document.getElementById('adminMask').classList.remove('hidden');
+        document.getElementById('adminModal').classList.remove('hidden');
+        document.getElementById('menuDropdown').classList.add('hidden');
+        renderUserTable(); updateRoomOnlineCount();
+    }
+    function closeAdminPanel() {
+        document.getElementById('adminMask').classList.add('hidden');
+        document.getElementById('adminModal').classList.add('hidden');
+    }
+    function renderUserTable() {
+        const tableBody = document.getElementById('userTableBody'); tableBody.innerHTML = '';
+        const allUsers = [...userDatabase, ...onlineUsers];
+        const uniqueUsers = Array.from(new Map(allUsers.map(u => [u.id, u])).values());
+        uniqueUsers.forEach(user => {
+            const isAuthorized = authorizedUsers.includes(user.id);
+            const roomName = user.currentRoomId ? rooms.find(r => r.id === user.currentRoomId).name : '未进入';
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${user.id}</td><td>${user.nickname}</td>
+                <td>${user.isBanned ? '<span style="color:red">已封号</span>' : '<span style="color:green">正常</span>'}</td>
+                <td>${roomName}</td>
+                <td>${isAuthorized ? '<span style="color:blue">已授权</span>' : '未授权'}</td>
+                <td>
+                    ${!user.isBanned ? `<button class="ban-btn" onclick="banUser('${user.id}')">封号</button>` : `<button class="unban-btn" onclick="unbanUser('${user.id}')">解禁</button>`}
+                    ${!isAuthorized ? `<button class="auth-btn" onclick="authorizeUser('${user.id}')">授权</button>` : ''}
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+    function searchUser() {
+        const keyword = document.getElementById('adminSearchInput').value.trim().toLowerCase();
+        const allUsers = [...userDatabase, ...onlineUsers];
+        const uniqueUsers = Array.from(new Map(allUsers.map(u => [u.id, u])).values());
+        const filteredUsers = uniqueUsers.filter(user => user.id.toLowerCase().includes(keyword) || user.nickname.toLowerCase().includes(keyword));
+        const tableBody = document.getElementById('userTableBody'); tableBody.innerHTML = '';
+        filteredUsers.forEach(user => {
+            const isAuthorized = authorizedUsers.includes(user.id);
+            const roomName = user.currentRoomId ? rooms.find(r => r.id === user.currentRoomId).name : '未进入';
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${user.id}</td><td>${user.nickname}</td>
+                <td>${user.isBanned ? '<span style="color:red">已封号</span>' : '<span style="color:green">正常</span>'}</td>
+                <td>${roomName}</td>
+                <td>${isAuthorized ? '<span style="color:blue">已授权</span>' : '未授权'}</td>
+                <td>
+                    ${!user.isBanned ? `<button class="ban-btn" onclick="banUser('${user.id}')">封号</button>` : `<button class="unban-btn" onclick="unbanUser('${user.id}')">解禁</button>`}
+                    ${!isAuthorized ? `<button class="auth-btn" onclick="authorizeUser('${user.id}')">授权</button>` : ''}
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+    function banUser(userId) {
+        if (adminIds.includes(userId)) { alert('❌ 无法封禁管理员账号！'); return; }
+        let user = userDatabase.find(u => u.id === userId);
+        if (!user) user = onlineUsers.find(u => u.id === userId);
+        if (user) {
+            user.isBanned = true;
+            if (user.currentRoomId) {
+                roomData[user.currentRoomId].onlineUserIds = roomData[user.currentRoomId].onlineUserIds.filter(id => id !== userId);
+                const leaveNotice = `【系统公告】用户${user.nickname}（ID：${user.id}）因违规被封号`;
+                addGroupMsg(leaveNotice, 'broadcast-msg', false, user.currentRoomId);
+                user.currentRoomId = '';
+            }
+            alert(`✅ 已封禁用户【${user.nickname}（${user.id}）】`);
+            renderUserTable(); renderPrivateUserList(); updateRoomOnlineCount();
+        }
+    }
+    function unbanUser(userId) {
+        let user = userDatabase.find(u => u.id === userId);
+        if (!user) user = onlineUsers.find(u => u.id === userId);
+        if (user) { user.isBanned = false; alert(`✅ 已解禁用户【${user.nickname}（${user.id}）】`); renderUserTable(); renderPrivateUserList(); updateRoomOnlineCount(); }
+    }
+    function authorizeUser(userId) {
+        if (!authorizedUsers.includes(userId)) {
+            authorizedUsers.push(userId);
+            let user = userDatabase.find(u => u.id === userId) || onlineUsers.find(u => u.id === userId);
+            alert(`✅ 已授权用户【${user.nickname}（${user.id}）】访问私密房间`);
+            renderUserTable();
+        }
+    }
+    function updateRoomOnlineCount() {
+        const roomList = document.getElementById('roomList'); roomList.innerHTML = '';
+        rooms.forEach(room => {
+            const count = roomData[room.id].onlineUserIds.length;
+            const item = document.createElement('div'); item.className = `room-item ${room.type}`;
+            item.innerHTML = `<span class="room-name">${room.name}</span><span class="online-count">${count}人在线</span>${room.type === 'private' ? '<span class="private-tag">VIP专属</span>' : ''}`;
+            item.onclick = () => enterChatRoom(room);
+            roomList.appendChild(item);
+        });
+        if (currentRoom) {
+            const count = roomData[currentRoom].onlineUserIds.length;
+            document.getElementById('roomOnlineCount').textContent = `在线人数：${count}`;
+        }
+        if (currentUser.isAdmin && document.getElementById('roomStatsList')) {
+            const statsList = document.getElementById('roomStatsList'); statsList.innerHTML = '';
+            rooms.forEach(room => {
+                const count = roomData[room.id].onlineUserIds.length;
+                statsList.innerHTML += `<div class="stats-item"><span>${room.name} ${room.type === 'private' ? '(VIP)' : ''}</span><span>${count}人</span></div>`;
+            });
+        }
+        if (!document.getElementById('playerListModal').classList.contains('hidden')) renderPlayerList();
+    }
+
+    // 遮罩关闭
+    document.getElementById('privateMask').addEventListener('click', closePrivateChat);
+    document.getElementById('playerListMask').addEventListener('click', closePlayerList);
+    document.getElementById('adminMask').addEventListener('click', closeAdminPanel);
+    document.getElementById('privateChatModal').addEventListener('click', e => e.stopPropagation());
+    document.getElementById('playerListModal').addEventListener('click', e => e.stopPropagation());
+    document.getElementById('adminModal').addEventListener('click', e => e.stopPropagation());
+    document.addEventListener('click', e => {
+        const menuDropdown = document.getElementById('menuDropdown');
+        const menuBtn = document.querySelector('.menu-btn');
+        if (menuBtn && !menuBtn.contains(e.target) && !menuDropdown.contains(e.target)) {
+            menuDropdown.classList.add('hidden');
+        }
+    });
+</script>
+</body>
+</html>
