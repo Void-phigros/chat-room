@@ -3,26 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多聊天室系统</title>
+    <title>多聊天室系统 (云同步版)</title>
     <style>
-        /*
-                                              _,--'""'--,_
-                                            /            \
-                                           |    ___ ___   |
-                                           |   /   '   \  |
-                                           |  |   O O  |  |
-                                           |  |   ---  |  |
-                                           |   \_____ /   |
-                                            \           /
-                                             '-,___,-'
-                                            /   /   \   \
-                                           |    |   |    |
-                                           |    |___|    |
-                                            \   |   |   /
-                                             \  |___|  /
-                                              \_______/
-        🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥不倒翁保佑我的代码不倒🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-        */
         :root {
             --primary-color: #5b7cfa;
             --primary-light: #eef1ff;
@@ -36,148 +18,68 @@
             --radius: 12px;
             --radius-sm: 8px;
         }
-
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-main); display: flex; justify-content: center; min-height: 100vh; }
         #app-wrapper { width: 100%; max-width: 800px; min-height: 100vh; background: #fff; box-shadow: 0 0 30px rgba(0,0,0,0.05); display: flex; flex-direction: column; position: relative; }
         .hidden { display: none !important; }
-
-        /* 首页页面 */
         #homePage { padding: 20px; flex: 1; }
         #homePage h2 { text-align: center; font-weight: 600; color: var(--text-main); margin: 30px 0; font-size: 24px; letter-spacing: 1px; }
-        
-        /* 聊天室列表 */
         .room-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 40px; }
         @media (min-width: 600px) { .room-list { grid-template-columns: repeat(3, 1fr); } }
-        
-        .room-item {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius);
-            padding: 20px 15px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 80px;
-        }
+        .room-item { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 20px 15px; text-align: center; cursor: pointer; transition: all 0.2s ease; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 80px; }
         .room-item:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--primary-color); }
         .room-item .room-name { font-weight: 600; color: var(--text-main); margin-bottom: 8px; font-size: 16px; }
         .room-item.public { background: var(--primary-light); border-color: #d0d9ff; }
         .room-item.public .room-name { color: var(--primary-color); }
         .room-item.private { background: #fffbf1; border-color: #f9e8c7; }
-        .room-item .online-count { 
-            font-size: 12px; color: var(--text-muted); background: rgba(255,255,255,0.7); 
-            padding: 2px 8px; border-radius: 10px; border: 1px solid var(--border-color);
-        }
+        .room-item .online-count { font-size: 12px; color: var(--text-muted); background: rgba(255,255,255,0.7); padding: 2px 8px; border-radius: 10px; border: 1px solid var(--border-color); }
         .room-item .private-tag { font-size: 12px; color: #e67e22; margin-top: 5px; font-weight: 500; }
-
-        /* 昵称注册框 */
         .nickname-box { max-width: 400px; margin: 0 auto; background: #fff; padding: 30px; border-radius: var(--radius); box-shadow: 0 0 20px rgba(0,0,0,0.03); border: 1px solid var(--border-color); text-align: center; }
         .nickname-box .user-info { color: var(--text-muted); font-size: 13px; margin-bottom: 15px; word-break: break-all; }
-        .nickname-box input { 
-            width: 100%; padding: 12px 15px; font-size: 15px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); 
-            outline: none; transition: 0.2s; margin-bottom: 10px; 
-        }
+        .nickname-box input { width: 100%; padding: 12px 15px; font-size: 15px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); outline: none; transition: 0.2s; margin-bottom: 10px; }
         .nickname-box input:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(91, 124, 250, 0.2); }
         .nickname-box .btn-group { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-        .nickname-box button {
-            padding: 10px 20px; font-size: 14px; border: none; border-radius: var(--radius-sm); cursor: pointer; 
-            background: var(--primary-color); color: white; transition: 0.2s; font-weight: 500;
-        }
+        .nickname-box button { padding: 10px 20px; font-size: 14px; border: none; border-radius: var(--radius-sm); cursor: pointer; background: var(--primary-color); color: white; transition: 0.2s; font-weight: 500; }
         .nickname-box button:hover { opacity: 0.9; transform: scale(0.98); }
         .nickname-box .admin-btn { background: #e67e22; color: white; }
         .nickname-box .tip { font-size: 13px; margin-top: 15px; height: 20px; color: #e74c3c; }
         .nickname-box .tip.success { color: var(--secondary-color); }
-
-        /* 聊天室界面 */
         #chatRoomPage { flex: 1; display: flex; flex-direction: column; height: 100vh; position: relative; background: #f8f9fa; }
-        
-        /* 顶部菜单 */
-        .chat-header { 
-            background: var(--primary-color); color: white; padding: 15px 20px; border-radius: 0 0 15px 15px;
-            display: flex; justify-content: space-between; align-items: center; position: relative; flex-shrink: 0;
-            box-shadow: 0 2px 10px rgba(91, 124, 250, 0.4);
-        }
+        .chat-header { background: var(--primary-color); color: white; padding: 15px 20px; border-radius: 0 0 15px 15px; display: flex; justify-content: space-between; align-items: center; position: relative; flex-shrink: 0; box-shadow: 0 2px 10px rgba(91, 124, 250, 0.4); }
         .chat-header .room-info { display: flex; flex-direction: column; gap: 2px; }
         .chat-header .room-title { font-size: 18px; font-weight: 600; }
         .chat-header .room-online { font-size: 12px; opacity: 0.8; }
         .chat-header .header-menu { position: relative; }
         .chat-header .menu-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 15px; border-radius: 20px; cursor: pointer; font-size: 14px; backdrop-filter: blur(4px); }
-        
-        .header-menu .menu-dropdown {
-            position: absolute; right: 0; top: 40px; background: white; border-radius: var(--radius); box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            width: 150px; z-index: 20; border: 1px solid var(--border-color); overflow: hidden;
-        }
+        .header-menu .menu-dropdown { position: absolute; right: 0; top: 40px; background: white; border-radius: var(--radius); box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 150px; z-index: 20; border: 1px solid var(--border-color); overflow: hidden; }
         .header-menu .menu-dropdown li { list-style: none; padding: 12px 15px; font-size: 14px; color: var(--text-main); cursor: pointer; transition: 0.1s; border-bottom: 1px solid #f5f5f5; }
         .header-menu .menu-dropdown li:hover { background: #f5f7fa; color: var(--primary-color); }
         .header-menu .menu-dropdown li:last-child { border-bottom: none; color: #e74c3c; }
         .header-menu .menu-dropdown li:last-child:hover { background: #fff5f5; color: #e74c3c; }
-
-        /* 消息显示区 */
         .chat-messages-area { flex: 1; padding: 20px; overflow-y: auto; background: #f5f7fa; display: flex; flex-direction: column; }
         .current-user-tag { text-align: center; font-size: 12px; color: var(--text-muted); margin-bottom: 15px; }
-        
         .msg { padding: 12px 16px; border-radius: var(--radius); margin-bottom: 10px; max-width: 80%; width: fit-content; position: relative; font-size: 15px; line-height: 1.5; box-shadow: 0 1px 2px rgba(0,0,0,0.05); word-break: break-all; }
-        
         .msg.msg { background: #ffffff; color: #333; margin-right: auto; border-top-left-radius: 4px; }
         .msg.admin-msg { background: #ffffff; color: #333; border-left: 4px solid #e67e22; margin-right: auto; border-top-left-radius: 4px; }
-        
-        /* 自己发的消息（需要DOM结构支持或者通过JS控制） */
         .chat-messages-area .msg.own { background: var(--primary-color); color: white; margin-left: auto; border-top-right-radius: 4px; border-left: none; }
-        
-        .msg.broadcast-msg { 
-            background: #e8f5e9; color: #2e7d32; text-align: center; margin: 10px auto; max-width: 90%; 
-            border-left: 3px solid #4caf50; border-radius: var(--radius-sm);
-        }
+        .msg.broadcast-msg { background: #e8f5e9; color: #2e7d32; text-align: center; margin: 10px auto; max-width: 90%; border-left: 3px solid #4caf50; border-radius: var(--radius-sm); }
         .msg.notice { color: var(--text-muted); font-style: italic; text-align: center; margin: 8px auto; font-size: 13px; background: transparent; box-shadow: none; width: 100%; }
-
-        /* 输入框 */
-        .chat-input-area { 
-            background: white; padding: 15px 20px; border-top: 1px solid var(--border-color); display: flex; gap: 12px; 
-            position: sticky; bottom: 0; flex-shrink: 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.02);
-        }
-        .chat-input-area input {
-            flex: 1; padding: 12px 15px; border: 1px solid var(--border-color); border-radius: 25px; outline: none; 
-            font-size: 15px; background: #f8f9fa; transition: 0.2s;
-        }
+        .chat-input-area { background: white; padding: 15px 20px; border-top: 1px solid var(--border-color); display: flex; gap: 12px; position: sticky; bottom: 0; flex-shrink: 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.02); }
+        .chat-input-area input { flex: 1; padding: 12px 15px; border: 1px solid var(--border-color); border-radius: 25px; outline: none; font-size: 15px; background: #f8f9fa; transition: 0.2s; }
         .chat-input-area input:focus { background: #fff; border-color: var(--primary-color); }
-        .chat-input-area button {
-            padding: 0 25px; background: var(--primary-color); color: white; border: none; border-radius: 25px; 
-            font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 15px;
-        }
+        .chat-input-area button { padding: 0 25px; background: var(--primary-color); color: white; border: none; border-radius: 25px; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 15px; }
         .chat-input-area button:hover { opacity: 0.8; }
-
-        /* 弹窗和遮罩 */
         .mask { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 99; backdrop-filter: blur(2px); }
-        
-        .modal {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.95);
-            background: white; border-radius: var(--radius); box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            width: 90%; max-width: 550px; z-index: 100; display: flex; flex-direction: column;
-            max-height: 90vh; transition: 0.2s; opacity: 0;
-        }
+        .modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.95); background: white; border-radius: var(--radius); box-shadow: 0 10px 40px rgba(0,0,0,0.2); width: 90%; max-width: 550px; z-index: 100; display: flex; flex-direction: column; max-height: 90vh; transition: 0.2s; opacity: 0; }
         .modal:not(.hidden) { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-        .modal-header { 
-            padding: 15px 20px; color: white; border-radius: var(--radius) var(--radius) 0 0; display: flex; justify-content: space-between; align-items: center; 
-            flex-shrink: 0;
-        }
+        .modal-header { padding: 15px 20px; color: white; border-radius: var(--radius) var(--radius) 0 0; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
         .modal-header h4 { font-size: 17px; font-weight: 600; }
         .modal-header button { background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; opacity: 0.8; }
         .modal-header button:hover { opacity: 1; }
-        
         .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
-
-        /* 特定弹窗颜色 */
         #privateChatModal .modal-header { background: #42b983; }
         #playerListModal .modal-header { background: var(--primary-color); }
         #adminModal .modal-header { background: #e67e22; }
-
-        /* 私聊面板 */
         .private-user-list { border-bottom: 1px solid var(--border-color); margin-bottom: 15px; padding-bottom: 10px; max-height: 150px; overflow-y: auto; }
         .private-user-item { padding: 8px 12px; border-radius: var(--radius-sm); cursor: pointer; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; transition: 0.1s; }
         .private-user-item:hover { background: #f5f5f5; }
@@ -187,30 +89,22 @@
         .private-chat-input input { flex: 1; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); outline: none; }
         .private-chat-input input:focus { border-color: #42b983; }
         .private-chat-input button { padding: 10px 20px; background: #42b983; color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; }
-
-        /* 玩家列表 */
         .player-item { padding: 8px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
         .player-item .player-nickname { font-weight: 500; }
         .player-item .player-id { font-size: 12px; color: var(--text-muted); }
         .player-item.admin .player-nickname { color: #e67e22; font-weight: bold; }
-
-        /* 管理员后台 */
         .admin-broadcast, .admin-room-stats { margin-bottom: 20px; padding: 15px; border: 1px solid transparent; border-radius: var(--radius-sm); }
         .admin-broadcast { background: #fff8e1; border-color: #ffcc80; }
         .admin-room-stats { background: #e3f2fd; border-color: #90caf9; }
-        
         .admin-broadcast h4, .admin-room-stats h4 { margin-bottom: 12px; font-size: 15px; }
         .broadcast-input { display: flex; gap: 10px; }
         .broadcast-input input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
         .broadcast-input button { padding: 10px 20px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        
         .stats-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
         .stats-item { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; }
-        
         .admin-search { margin-bottom: 15px; display: flex; gap: 10px; }
         .admin-search input { flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; }
         .admin-search button { padding: 8px 15px; background: #e67e22; color: white; border: none; border-radius: 4px; cursor: pointer; }
-
         .user-table { width: 100%; border-collapse: collapse; font-size: 14px; }
         .user-table th { background: #f8f9fa; padding: 10px; border-bottom: 2px solid #eee; text-align: left; color: #555; }
         .user-table td { padding: 10px; border-bottom: 1px solid #eee; vertical-align: middle; }
@@ -218,7 +112,6 @@
         .ban-btn { background: #e74c3c; }
         .unban-btn { background: #27ae60; }
         .auth-btn { background: #3498db; }
-
         @media (max-width: 600px) {
             .nickname-box { width: 100%; }
             .room-list { grid-template-columns: repeat(1, 1fr); }
@@ -233,7 +126,6 @@
 <body>
 
 <div id="app-wrapper">
-    <!-- 首页 -->
     <div id="homePage">
         <h2>📱 多聊天室系统</h2>
         <div class="room-list" id="roomList"></div>
@@ -249,7 +141,6 @@
         </div>
     </div>
 
-    <!-- 聊天室界面 -->
     <div id="chatRoomPage" class="hidden">
         <div class="chat-header">
             <div class="room-info">
@@ -266,12 +157,10 @@
                 </ul>
             </div>
         </div>
-        
         <div class="chat-messages-area">
             <div class="current-user-tag" id="currentUserTag">当前用户信息</div>
             <div id="groupChatMessages" style="flex:1; display: flex; flex-direction: column;"></div>
         </div>
-
         <div class="chat-input-area">
             <input type="text" id="groupMsgInput" placeholder="输入群聊消息...">
             <button onclick="sendGroupMsg()">发送</button>
@@ -279,7 +168,7 @@
     </div>
 </div>
 
-<!-- 弹窗容器 -->
+<!-- 弹窗区域 -->
 <div class="mask hidden" id="privateMask"></div>
 <div class="modal hidden" id="privateChatModal">
     <div class="modal-header"><h4>💬 私聊</h4><button onclick="closePrivateChat()">✕</button></div>
@@ -327,11 +216,11 @@
 
 <script>
     // ========================================================
-    // 🟢 重要：请在这里填入你的 Supabase 连接信息 🟢
+    // 🟢 重要：请复制你 Supabase 项目里的【URL】和【可发布密钥】替换下面这 2 行！
     // ========================================================
-    const SUPABASE_URL = 'https://你的项目ID.supabase.co';
-    const SUPABASE_KEY = '你的anon_public可发布密钥';
-    
+    const SUPABASE_URL = 'https://tknxtcnzjlnurfwanztn.supabase.co'; 
+    const SUPABASE_KEY = 'sb_publishable_Az-F432OO2tZ_j3weZHZWg_eLeI-klL';
+    
     // 初始化 Supabase 客户端
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     // ========================================================
@@ -366,20 +255,17 @@
     ];
     const privateHistory = {};
     const roomData = {};
-
     rooms.forEach(room => {
         roomData[room.id] = { messages: [], onlineUserIds: [] };
         onlineUsers.forEach(user => { if (user.currentRoomId === room.id) roomData[room.id].onlineUserIds.push(user.id); });
     });
 
-    window.onload = () => { 
-        renderRoomList(); 
-        const savedUserId = localStorage.getItem('chatUserId'); 
-        if (savedUserId) loadSavedUser(savedUserId); 
-        updateAdminButtonStatus(); 
-        
-        // 如果用户已登录，开启云端消息监听
-        listenForMessages();
+    window.onload = () => { 
+        renderRoomList(); 
+        const savedUserId = localStorage.getItem('chatUserId'); 
+        if (savedUserId) loadSavedUser(savedUserId); 
+        updateAdminButtonStatus(); 
+        listenForMessages(); // 开启云端消息监听
     };
 
     function generateUniqueId() {
@@ -413,11 +299,7 @@
         document.getElementById('adminMenuBtn').className = currentUser.isAdmin ? '' : 'hidden';
     }
 
-    // ========================================================
-    // 🟢 核心升级：连接云端接收和发送消息 🟢
-    // ========================================================
-
-    // 发送消息到云端
+    // 发送群消息到云端
     function sendGroupMsg() {
         if (checkUserBanned()) return;
         const input = document.getElementById('groupMsgInput');
@@ -425,7 +307,6 @@
         if (!msg) return;
         if (hasForbiddenWords(msg)) { alert('❌ 消息包含违禁词，禁止发送！'); input.value = ''; return; }
 
-        // 推送到 Supabase 云端
         supabaseClient
             .from('messages')
             .insert({
@@ -435,15 +316,13 @@
             })
             .then();
 
-        // 自己发的消息，立刻在本地显示（变成蓝色气泡）
         const msgContent = `【${currentUser.nickname}（ID：${currentUser.id}）】${msg}`;
         const msgType = currentUser.isAdmin ? 'admin-msg' : 'msg';
-        addGroupMsg(msgContent, msgType, true, currentRoom); 
-        
+        addGroupMsg(msgContent, msgType, true, currentRoom); 
         input.value = '';
     }
 
-    // 实时监听云端（别人发消息，你的页面立刻弹出）
+    // 实时监听云端（别人发消息立刻显示）
     function listenForMessages() {
         supabaseClient
             .channel('chat-room-sync')
@@ -452,27 +331,16 @@
                 { event: 'INSERT', schema: 'public', table: 'messages' },
                 (payload) => {
                     const newMsg = payload.new;
-                    // 如果消息是自己发的，就不重复显示（避免气泡重复）
                     if (newMsg.nickname === currentUser.nickname) return;
-                    // 如果不是当前所在的聊天室，也不显示
                     if (newMsg.room_id !== currentRoom) return;
-
-                    // 构造消息内容
                     const msgContent = `【${newMsg.nickname}】${newMsg.content}`;
-                    // 判断是不是管理员发的
-                    const isAdmin = adminIds.includes(newMsg.id); // 预留管理员判断
-                    const msgType = isAdmin ? 'admin-msg' : 'msg';
-                    
-                    // 添加到本地屏幕，但拒绝存入本地缓存（isSave = false）
+                    const msgType = adminIds.includes(newMsg.id) ? 'admin-msg' : 'msg';
                     addGroupMsg(msgContent, msgType, false, currentRoom);
                 }
             )
             .subscribe();
     }
 
-    // ========================================================
-
-    // 添加群消息（判断气泡颜色及归属）
     function addGroupMsg(content, type, isSave = true, roomId = currentRoom) {
         if (!roomId) return;
         const msgBox = document.getElementById('groupChatMessages');
@@ -481,7 +349,7 @@
             div.className = type;
             if (type === 'msg' && content.includes(currentUser.nickname) && !content.includes('【系统】')) {
                 div.classList.add('own');
-            } 
+            } 
             if (content.startsWith('【系统】')) {
                 div.className = 'notice';
             }
@@ -789,7 +657,6 @@
         if (!document.getElementById('playerListModal').classList.contains('hidden')) renderPlayerList();
     }
 
-    // 遮罩关闭
     document.getElementById('privateMask').addEventListener('click', closePrivateChat);
     document.getElementById('playerListMask').addEventListener('click', closePlayerList);
     document.getElementById('adminMask').addEventListener('click', closeAdminPanel);
